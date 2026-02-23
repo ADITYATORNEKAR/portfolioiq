@@ -1,0 +1,11 @@
+FastAPI
+Uvicorn
+Polars
+LangGraph
+LangChain
+EconML
+Causal-Learn
+VectorBT
+StatsModels
+Scikit-Learn
+WebSockets
