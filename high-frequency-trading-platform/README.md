@@ -184,6 +184,10 @@ high-frequency-trading-platform/
 - Analyst, Risk Manager, Backtester, Execution agents
 - Shared state graph with conditional branching
 
+## System Architecture Diagram
+
+![HFT Causal Platform Architecture](../Architecture.png)
+
 ### Simulation Engine (`backend/app/services/backtest.py`)
 - **Vectorized**: vectorbt for rapid parameter sweep testing
 - **Event-Based**: Discrete market events with slippage/transaction cost modeling
