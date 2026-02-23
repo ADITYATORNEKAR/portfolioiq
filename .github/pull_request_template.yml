@@ -1,0 +1,77 @@
+name: Pull Request
+description: Submit a pull request
+title: "[PR] "
+labels: ["review-needed"]
+
+body:
+  - type: markdown
+    attributes:
+      value: "## Pull Request"
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "What changes does this PR introduce?"
+      placeholder: "Describe your changes here..."
+    validations:
+      required: true
+  
+  - type: textarea
+    id: motivation
+    attributes:
+      label: "Motivation & Context"
+      description: "Why are these changes needed?"
+      placeholder: "Why is this change important?"
+    validations:
+      required: true
+  
+  - type: checkboxes
+    id: type
+    attributes:
+      label: "Type of Change"
+      options:
+        - label: "Bug fix (fixes an issue)"
+        - label: "New feature (adds functionality)"
+        - label: "Breaking change (modifies existing behavior)"
+        - label: "Documentation update"
+        - label: "Code refactoring"
+    validations:
+      required: true
+  
+  - type: checkboxes
+    id: testing
+    attributes:
+      label: "Testing"
+      options:
+        - label: "Unit tests added/updated"
+        - label: "Integration tests added/updated"
+        - label: "Manual testing completed"
+        - label: "All tests pass locally"
+    validations:
+      required: true
+  
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Checklist"
+      options:
+        - label: "Code follows style guidelines (black, pylint)"
+        - label: "Type hints added (backend)"
+        - label: "Docstrings updated"
+        - label: "No new warnings introduced"
+        - label: "Changes documented in README/docs"
+    validations:
+      required: true
+  
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots (if applicable)"
+      description: "Add any relevant screenshots or diagrams"
+  
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional Notes"
+      description: "Any additional context?"
