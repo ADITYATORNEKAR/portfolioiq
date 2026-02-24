@@ -1,14 +1,12 @@
-module.exports = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  experimental: {
-    appDir: true,
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
   },
   images: {
-    domains: ['example.com'], // Add your image domains here
-  },
-  webpack: (config) => {
-    // Custom webpack configuration can go here
-    return config;
+    domains: ["finnhub.io"],
   },
 };
+
+module.exports = nextConfig;

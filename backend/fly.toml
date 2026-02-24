@@ -1,0 +1,39 @@
+# Fly.io deployment configuration
+# Free tier: shared-cpu-1x (256MB RAM) — always-on, no spin-down
+# Setup: fly launch (first time) then fly deploy
+
+app = "hft-causal-platform"
+primary_region = "ord"  # Chicago — change to nearest: lax, ewr, sea, iad, etc.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ENVIRONMENT = "production"
+  DB_PATH = "/data/hft_causal.db"
+  PORT = "8000"
+
+[mounts]
+  source = "hft_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false   # Keep always-on (uses free allocation)
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[[statics]]
+  guest_path = "/app/static"
+  url_prefix = "/static"

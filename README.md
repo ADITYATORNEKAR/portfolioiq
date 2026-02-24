@@ -1,143 +1,157 @@
-# 👋 Aditya Tornekar
+# HFT Causal Platform
 
-**Quantitative Researcher | AI/ML Engineer | Financial Systems Architect**
+> **Discover what *causes* your portfolio to move — not just what correlates.**
 
-Building intelligent systems at the intersection of causal inference, high-frequency trading, and multi-agent orchestration.
+A full-stack portfolio analytics platform combining rigorous causal inference, AI agents, and backtesting. Built entirely on a **free-forever** stack — no credit card, no paid tiers.
+
+Live demo: `https://hft-causal-platform.vercel.app` · API: `https://hft-causal-platform.fly.dev/docs`
 
 ---
 
-## 🚀 Featured Project: HFT Causal Platform
+## What It Does
 
-### High-Frequency Trading with Causal Discovery & Multi-Agent Intelligence
+Enter any stock tickers and get:
 
-A sophisticated analytics platform that isolates true price impact signals from retail sentiment using advanced causal inference and autonomous agents.
+| Feature | What You See |
+|---------|-------------|
+| **Causal Graph** | Interactive D3 DAG — which assets actually drive others |
+| **Backtest** | Equal-weight portfolio vs SPY with Sharpe, MDD, Alpha, Sortino |
+| **AI Insights** | Groq Llama-3.3-70b multi-agent narrative |
+| **Sentiment** | News articles scored with VADER sentiment |
+| **Live Prices** | WebSocket real-time price cards |
 
-**[→ Explore the Repository](https://github.com/ADITYATORNEKAR/hft-causal-platform)**
+---
 
-### 🎯 Key Capabilities
+## Free Stack (100% — No Credit Card Ever)
+
+| Layer | Tool | API Key? | Cost |
+|-------|------|----------|------|
+| Historical data | `yfinance` | None | Free |
+| Real-time quotes | Finnhub REST | Free signup | Free |
+| News / RSS | Finnhub + feedparser | Free signup | Free |
+| Macro indicators | FRED API | Free signup | Free |
+| Causal discovery | causal-learn (PC algorithm) | — | Open source |
+| Treatment effects | EconML (Double ML) | — | Open source |
+| AI agents | Groq Llama-3.3-70b + LangGraph | Free signup | Free |
+| Backend | FastAPI + Uvicorn | — | Open source |
+| Frontend | Next.js 14 + Tailwind + D3 + Recharts | — | Open source |
+| Database | SQLite (zero-config) | None | Free |
+| Backend deploy | Fly.io free tier (always-on) | Free account | Free |
+| Frontend deploy | Vercel hobby tier | Free account | Free |
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Python 3.9+  ·  Node.js 18+
+
+### Backend
+
+```bash
+git clone https://github.com/ADITYATORNEKAR/hft-causal-platform
+cd hft-causal-platform
+
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env   # add free API keys (optional)
+
+cd backend
+uvicorn app.main:app --reload --port 8000
+# API docs → http://localhost:8000/docs
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local             # NEXT_PUBLIC_API_URL=http://localhost:8000
+npm run dev
+# App → http://localhost:3000
+```
+
+### Docker (both at once)
+
+```bash
+cp backend/.env.example backend/.env
+docker-compose up --build
+```
+
+---
+
+## Getting Free API Keys (< 2 min each, no CC)
+
+| Key | Link | Limit |
+|-----|------|-------|
+| `FINNHUB_API_KEY` | [finnhub.io/register](https://finnhub.io/register) | 60 calls/min |
+| `FRED_API_KEY` | [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/api_key.html) | Unlimited |
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | 500 req/day |
+
+> **No keys needed to run the app.** yfinance handles all historical data with no key, and rule-based insights replace the LLM agents as a fallback.
+
+---
+
+## Architecture
 
 ```
-📊 Real-Time Data Ingestion    → Finnhub WebSocket + Alpha Vantage + Reddit Streams
-🧠 Causal Discovery Engine     → PC Algorithm + Double Machine Learning  
-🤖 Multi-Agent Orchestration   → LangGraph-based decision workflows
-📈 Advanced Backtesting        → Vectorized + Event-based simulation with real friction
-🛡️  Risk Management            → Human-in-the-loop validation checkpoints
+Browser → Next.js (Vercel) → FastAPI (Fly.io)
+                                    │
+              ┌─────────────────────┤
+              │                     │
+         Data Sources          Analytics Engine
+         ─────────────         ────────────────
+         yfinance (free)       PC Algorithm (causal-learn)
+         Finnhub REST          Double ML (EconML)
+         FRED API              LangGraph agents (Groq)
+         RSS feedparser        SQLite cache
 ```
 
-### 💡 The Problem This Solves
+---
 
-Traditional quantitative models fail in chaotic markets because they confuse **spurious correlations** with true causal relationships. A Reddit mention and a stock price move appear linked—but are they both responding to the same macro shock?
+## API Reference
 
-**Solution:** Rigorous causal filtering to isolate sentiment's true impact on your portfolio.
-
-### 🏗️ Architecture Highlights
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Backend** | FastAPI + Polars | High-performance analytics engine |
-| **Data Ingestion** | Async WebSocket + Token Bucket | Rate-limited, non-blocking data pipelines |
-| **Causal Engine** | causal-learn + EconML | DAG discovery & treatment effect estimation |
-| **Agents** | LangGraph | Stateful multi-agent workflows |
-| **Frontend** | Next.js + Tailwind | Real-time dashboard & backtesting UI |
-| **Deployment** | Vercel + Render | Free-tier production infrastructure |
-
-### 📊 Performance Metrics
-
-- **Data Ingestion**: 50-100 concurrent tickers within API limits
-- **Sentiment Processing**: ~1000 Reddit posts/10-second window
-- **Causal Discovery**: <5 seconds for 100+ variables
-- **Backtesting**: 10 years daily OHLCV in <2 seconds
-- **Agent Latency**: <500ms signal to execution
-
-### 🔗 Quick Links
-
-- **[Full Documentation](https://github.com/ADITYATORNEKAR/hft-causal-platform/blob/main/README.md)** - Comprehensive architecture & strategy
-- **[Backend Setup](https://github.com/ADITYATORNEKAR/hft-causal-platform/blob/main/backend/README.md)** - API & service details
-- **[Frontend Setup](https://github.com/ADITYATORNEKAR/hft-causal-platform/blob/main/frontend/README.md)** - Dashboard configuration
+```
+POST /api/v1/portfolio/analyze          → full analysis
+GET  /api/v1/portfolio/{id}/causal-graph
+GET  /api/v1/portfolio/{id}/backtest
+GET  /api/v1/portfolio/{id}/sentiment
+GET  /api/v1/portfolio/{id}/insights
+WS   /api/v1/live/prices?tickers=AAPL,MSFT
+```
 
 ---
 
-## 📚 Research Focus Areas
+## Deploy
 
-### Causal Inference in Finance
-- Detecting causal relationships in high-dimensional market data
-- Confounding bias in sentiment analysis
-- Treatment effect heterogeneity in trading strategies
+### Backend → Fly.io (always-on free tier)
 
-### Multi-Agent Systems
-- Autonomous decision-making under uncertainty
-- Agent coordination in competitive environments
-- Human-AI collaboration frameworks
+```bash
+cd backend
+fly launch
+fly secrets set FINNHUB_API_KEY=xxx FRED_API_KEY=xxx GROQ_API_KEY=xxx
+fly deploy
+```
 
-### High-Frequency Data Processing
-- Asynchronous pipeline architecture
-- Rate limiting & backpressure handling
-- Real-time sentiment analysis at scale
+### Frontend → Vercel
 
----
-
-## 💻 Tech Stack
-
-**Languages**: Python, TypeScript, JavaScript  
-**Data & ML**: Polars, pandas, scikit-learn, EconML, causal-learn  
-**Web**: FastAPI, Next.js, React, Tailwind CSS  
-**Async**: asyncio, websockets, httpx  
-**Infrastructure**: Docker, GitHub Actions, Vercel, Render  
-**Monitoring**: Logging, structured events, performance metrics
+```bash
+cd frontend
+npx vercel
+# Set: NEXT_PUBLIC_API_URL=https://hft-causal-platform.fly.dev
+```
 
 ---
 
-## 🎓 Background
+## Tests
 
-I specialize in building production-grade systems that combine:
-- **Statistical rigor** (causal inference, econometrics)
-- **Software engineering** (clean architecture, async patterns)
-- **Financial domain expertise** (market microstructure, risk management)
-
-My approach: *Marry cutting-edge research with battle-tested engineering practices.*
-
----
-
-## 📈 Current Initiatives
-
-- 🔍 **Causal Discovery at Scale** - Optimizing PC algorithm for 1000+ variables
-- 🤝 **Agent Collaboration Patterns** - Multi-agent coordination in adversarial markets
-- 📊 **Sentiment-to-Signal Conversion** - Bridging NLP and quantitative trading
-- 🚀 **Deployment Optimization** - Free-tier infrastructure scaling strategies
+```bash
+cd backend
+PYTHONPATH=. pytest tests/test_causal_service.py -v   # pure unit tests
+PYTHONPATH=. pytest tests/test_api.py -v -k "not analyze"
+```
 
 ---
 
-## 🤝 Let's Connect
+Built by **Aditya Tornekar** · [GitHub](https://github.com/ADITYATORNEKAR)
 
-- **GitHub**: [@ADITYATORNEKAR](https://github.com/ADITYATORNEKAR)
-- **Email**: Reach out with collaboration ideas
-- **Research Interests**: Causal ML, Financial Systems, Multi-Agent AI
-
----
-
-## 📌 Featured Repositories
-
-| Project | Description |
-|---------|------------|
-| **[hft-causal-platform](https://github.com/ADITYATORNEKAR/hft-causal-platform)** | 🏆 Primary: Causal inference + multi-agent HFT analytics |
-| **[quantitative-research](link-coming-soon)** | Quantitative strategies & backtesting frameworks |
-| **[ml-infrastructure](link-coming-soon)** | Production ML systems & deployment patterns |
-
----
-
-### ⚡ Fun Facts
-
-- Built data pipelines handling 1M+ events/minute
-- Debugged 3am production issues with exponential backoff grace
-- Believe in clean code, comprehensive tests, and clear documentation
-- Coffee-powered quantitative researcher ☕
-
----
-
-<div align="center">
-
-**Building the future of intelligent financial systems** 🚀
-
-*Last updated: February 2026*
-
-</div>
+*Causal inference in financial markets · Multi-agent systems · HFT data pipelines*

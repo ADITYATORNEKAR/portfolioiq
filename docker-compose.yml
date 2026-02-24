@@ -1,17 +1,19 @@
 version: '3.8'
 
-services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-    environment:
-      - NODE_ENV=production
+# ─────────────────────────────────────────────────────────────────────────────
+# HFT Causal Platform — Local Development Stack (100% free)
+# No PostgreSQL — uses SQLite stored in a Docker volume
+#
+# Usage:
+#   cp backend/.env.example backend/.env  (fill in free API keys)
+#   docker-compose up --build
+#
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:8000
+# API Docs: http://localhost:8000/docs
+# ─────────────────────────────────────────────────────────────────────────────
 
+services:
   backend:
     build:
       context: ./backend
@@ -19,21 +21,36 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - sqlite_data:/data
+      - ./backend:/app   # hot-reload in dev
+    env_file:
+      - ./backend/.env
     environment:
-      - PYTHON_ENV=production
-    depends_on:
-      - db
+      - ENVIRONMENT=development
+      - DB_PATH=/data/hft_causal.db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  db:
-    image: postgres:latest
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: trading_db
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
 
 volumes:
-  db_data:
+  sqlite_data:
+    driver: local
