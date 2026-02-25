@@ -190,9 +190,30 @@ export interface TickerForecast {
   forecast_6m: ForecastPoint;
   forecast_1y: ForecastPoint;
   future_series: ForecastPoint[];
+  // Sentiment-enhanced fields
+  sentiment_score?: number;           // VADER compound -1 to +1
+  sentiment_adjusted_30d?: ForecastPoint;
 }
 
 export interface ForecastResult {
   portfolio_id: string;
   ticker_forecasts: Record<string, TickerForecast>;
+}
+
+// ── Portfolio Optimization ─────────────────────────────────────────────────────
+
+export interface PortfolioAllocation {
+  strategy: string;
+  weights: Record<string, number>;  // ticker → % allocation
+  expected_return: number;
+  expected_volatility: number;
+  sharpe_ratio: number;
+}
+
+export interface OptimizationResult {
+  portfolio_id: string;
+  max_sharpe: PortfolioAllocation;
+  min_volatility: PortfolioAllocation;
+  equal_weight: PortfolioAllocation;
+  basis: string;
 }

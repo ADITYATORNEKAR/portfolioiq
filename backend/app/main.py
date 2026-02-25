@@ -67,6 +67,15 @@ def init_db() -> None:
             computed_at REAL NOT NULL,
             FOREIGN KEY (portfolio_id) REFERENCES portfolios(id)
         );
+
+        CREATE TABLE IF NOT EXISTS portfolio_returns (
+            portfolio_id TEXT PRIMARY KEY,
+            tickers_json TEXT NOT NULL,
+            returns_json TEXT NOT NULL,
+            cov_matrix_json TEXT NOT NULL,
+            computed_at REAL NOT NULL,
+            FOREIGN KEY (portfolio_id) REFERENCES portfolios(id)
+        );
     """)
     conn.commit()
     conn.close()

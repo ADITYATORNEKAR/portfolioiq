@@ -235,8 +235,29 @@ class TickerForecast(BaseModel):
     forecast_6m: ForecastPoint
     forecast_1y: ForecastPoint
     future_series: list[ForecastPoint]  # daily forecasts out to 365 days
+    # Sentiment-enhanced fields (populated after sentiment analysis)
+    sentiment_score: Optional[float] = None          # VADER compound -1 to +1
+    sentiment_adjusted_30d: Optional[ForecastPoint] = None  # sentiment-shifted 30d point
 
 
 class ForecastResult(BaseModel):
     portfolio_id: str
     ticker_forecasts: dict[str, TickerForecast]
+
+
+# ── Portfolio Optimization ─────────────────────────────────────────────────────
+
+class PortfolioAllocation(BaseModel):
+    strategy: str
+    weights: dict[str, float]          # ticker → % allocation (sums to 100)
+    expected_return: float             # annualised expected return %
+    expected_volatility: float         # annualised volatility %
+    sharpe_ratio: float
+
+
+class OptimizationResult(BaseModel):
+    portfolio_id: str
+    max_sharpe: PortfolioAllocation
+    min_volatility: PortfolioAllocation
+    equal_weight: PortfolioAllocation
+    basis: str = "Prophet 1-year expected returns + historical return covariance"

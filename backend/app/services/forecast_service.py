@@ -177,6 +177,48 @@ async def run_portfolio_forecast(prices_df: pd.DataFrame, tickers: list[str]) ->
     return results
 
 
+def apply_sentiment_adjustment(ticker_forecasts: dict, sentiment: dict) -> dict:
+    """
+    Adjust the 30-day forecast for each ticker using its VADER sentiment score.
+
+    Sentiment influence is capped at ±5% to avoid over-fitting short-term noise.
+    Long-range forecasts (60d+) are left unchanged — sentiment decays quickly.
+
+    Args:
+        ticker_forecasts: dict[ticker -> TickerForecast dict]
+        sentiment: the SentimentResult dict with key "ticker_sentiment"
+
+    Returns:
+        Updated ticker_forecasts dict with "sentiment_score" and
+        "sentiment_adjusted_30d" fields added per ticker.
+    """
+    ticker_sentiment = sentiment.get("ticker_sentiment", {})
+    SENSITIVITY = 0.05  # 5% max price adjustment per unit of sentiment score
+
+    for ticker, tf in ticker_forecasts.items():
+        sent_data = ticker_sentiment.get(ticker, {})
+        score = sent_data.get("overall_score", 0.0)  # VADER compound: -1 to +1
+
+        tf["sentiment_score"] = round(float(score), 4)
+
+        # Build adjusted 30d forecast point
+        base_30d = tf.get("forecast_30d", {})
+        if base_30d and base_30d.get("yhat", 0) > 0:
+            adjustment = 1.0 + (score * SENSITIVITY)
+            adjusted_yhat = round(base_30d["yhat"] * adjustment, 2)
+            # Scale confidence bounds proportionally
+            adjusted_lower = round(base_30d["yhat_lower"] * adjustment, 2)
+            adjusted_upper = round(base_30d["yhat_upper"] * adjustment, 2)
+            tf["sentiment_adjusted_30d"] = {
+                "date": base_30d["date"],
+                "yhat": adjusted_yhat,
+                "yhat_lower": adjusted_lower,
+                "yhat_upper": adjusted_upper,
+            }
+
+    return ticker_forecasts
+
+
 def build_forecast_summary(ticker_forecasts: dict) -> dict:
     """
     Summarise the 1-year forecasts per ticker for passing to AI agents.

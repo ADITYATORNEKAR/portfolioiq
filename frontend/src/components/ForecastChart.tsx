@@ -131,29 +131,69 @@ export default function ForecastChart({ forecast }: Props) {
 
       {/* Horizon summary cards */}
       {horizonPoint && (
-        <div className="mb-4 grid grid-cols-3 gap-3">
-          <div className="rounded-lg bg-surface-dark p-3">
-            <p className="text-xs text-slate-500">Current Price</p>
-            <p className="mt-0.5 text-sm font-semibold text-white">
-              {currentPrice ? fmt(currentPrice) : "—"}
-            </p>
+        <div className="mb-4 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-surface-dark p-3">
+              <p className="text-xs text-slate-500">Current Price</p>
+              <p className="mt-0.5 text-sm font-semibold text-white">
+                {currentPrice ? fmt(currentPrice) : "—"}
+              </p>
+            </div>
+            <div className="rounded-lg bg-surface-dark p-3">
+              <p className="text-xs text-slate-500">Prophet Forecast ({horizon})</p>
+              <p className={`mt-0.5 text-sm font-semibold ${
+                expectedReturn !== null && expectedReturn >= 0 ? "text-green-400" : "text-red-400"
+              }`}>
+                {fmt(horizonPoint.yhat)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-surface-dark p-3">
+              <p className="text-xs text-slate-500">Expected Return</p>
+              <p className={`mt-0.5 text-sm font-semibold ${
+                expectedReturn !== null && expectedReturn >= 0 ? "text-green-400" : "text-red-400"
+              }`}>
+                {expectedReturn !== null ? fmtPct(expectedReturn) : "—"}
+              </p>
+            </div>
           </div>
-          <div className="rounded-lg bg-surface-dark p-3">
-            <p className="text-xs text-slate-500">Forecast ({horizon})</p>
-            <p className={`mt-0.5 text-sm font-semibold ${
-              expectedReturn !== null && expectedReturn >= 0 ? "text-green-400" : "text-red-400"
-            }`}>
-              {fmt(horizonPoint.yhat)}
-            </p>
-          </div>
-          <div className="rounded-lg bg-surface-dark p-3">
-            <p className="text-xs text-slate-500">Expected Return</p>
-            <p className={`mt-0.5 text-sm font-semibold ${
-              expectedReturn !== null && expectedReturn >= 0 ? "text-green-400" : "text-red-400"
-            }`}>
-              {expectedReturn !== null ? fmtPct(expectedReturn) : "—"}
-            </p>
-          </div>
+
+          {/* Sentiment-adjusted 30d card — only shown on 30d horizon */}
+          {horizon === "30d" && forecast.sentiment_adjusted_30d && (
+            <div className="rounded-lg border border-surface-border bg-surface-dark p-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <SentimentDot score={forecast.sentiment_score ?? 0} />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-400 font-medium">
+                    Sentiment-adjusted 30d
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    VADER score {forecast.sentiment_score !== undefined
+                      ? `${forecast.sentiment_score >= 0 ? "+" : ""}${forecast.sentiment_score.toFixed(3)}`
+                      : "n/a"}{" "}
+                    · ±5% max adjustment
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className={`text-sm font-bold ${
+                  forecast.sentiment_adjusted_30d.yhat >= horizonPoint.yhat
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}>
+                  {fmt(forecast.sentiment_adjusted_30d.yhat)}
+                </p>
+                {currentPrice && currentPrice > 0 && (
+                  <p className={`text-xs font-medium ${
+                    forecast.sentiment_adjusted_30d.yhat >= currentPrice
+                      ? "text-green-400/70"
+                      : "text-red-400/70"
+                  }`}>
+                    {fmtPct(((forecast.sentiment_adjusted_30d.yhat - currentPrice) / currentPrice) * 100)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -261,5 +301,22 @@ export default function ForecastChart({ forecast }: Props) {
         </p>
       )}
     </div>
+  );
+}
+
+function SentimentDot({ score }: { score: number }) {
+  const color =
+    score > 0.05
+      ? "bg-green-400"
+      : score < -0.05
+      ? "bg-red-400"
+      : "bg-yellow-400";
+  const title =
+    score > 0.05 ? "Positive sentiment" : score < -0.05 ? "Negative sentiment" : "Neutral sentiment";
+  return (
+    <span
+      className={`flex-shrink-0 h-2.5 w-2.5 rounded-full ${color}`}
+      title={title}
+    />
   );
 }

@@ -20,6 +20,7 @@ import LivePrices from "@/components/LivePrices";
 import RiskMetrics from "@/components/RiskMetrics";
 import ForecastChart from "@/components/ForecastChart";
 import PortfolioSimulator from "@/components/PortfolioSimulator";
+import PortfolioOptimizer from "@/components/PortfolioOptimizer";
 import {
   Loader2,
   BarChart2,
@@ -29,9 +30,10 @@ import {
   TrendingUp,
   LineChart,
   SlidersHorizontal,
+  Target,
 } from "lucide-react";
 
-type Tab = "causal" | "backtest" | "insights" | "sentiment" | "forecast" | "simulator" | "live";
+type Tab = "causal" | "backtest" | "insights" | "sentiment" | "forecast" | "simulator" | "optimize" | "live";
 
 function SkeletonCard() {
   return (
@@ -98,6 +100,7 @@ function AnalyzePage() {
     { id: "sentiment", label: "Sentiment", icon: TrendingUp },
     { id: "forecast", label: "Forecast", icon: LineChart },
     { id: "simulator", label: "Simulator", icon: SlidersHorizontal },
+    { id: "optimize", label: "Optimize", icon: Target },
     { id: "live", label: "Live Prices", icon: Zap },
   ];
 
@@ -199,6 +202,12 @@ function AnalyzePage() {
               )}
               {activeTab === "simulator" && (
                 <SimulatorTab
+                  portfolioId={portfolioId}
+                  tickers={analysisResult?.tickers || []}
+                />
+              )}
+              {activeTab === "optimize" && (
+                <PortfolioOptimizer
                   portfolioId={portfolioId}
                   tickers={analysisResult?.tickers || []}
                 />

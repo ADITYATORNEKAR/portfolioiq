@@ -25,6 +25,8 @@ from app.models.schemas import (
     BacktestResult,
     CausalGraph,
     ForecastResult,
+    OptimizationResult,
+    PortfolioAllocation,
     PortfolioPositionSummary,
     PortfolioRequest,
     PortfolioResponse,
@@ -36,7 +38,12 @@ from app.services.agent_service import generate_insights
 from app.services.backtest_service import run_backtest
 from app.services.causal_service import run_full_causal_pipeline
 from app.services.data_service import fetch_portfolio_data, search_ticker
-from app.services.forecast_service import build_forecast_summary, run_portfolio_forecast
+from app.services.forecast_service import (
+    apply_sentiment_adjustment,
+    build_forecast_summary,
+    run_portfolio_forecast,
+)
+from app.services.optimizer_service import build_covariance_matrix, optimize_portfolio
 from app.services.sentiment_service import fetch_portfolio_sentiment
 
 router = APIRouter()
@@ -162,10 +169,23 @@ async def analyze_portfolio(req: PortfolioRequest):
     # --- Prophet Forecasting ---
     try:
         ticker_forecasts = await run_portfolio_forecast(prices, available_tickers)
+        # Apply sentiment adjustment to 30d forecasts (±5% cap)
+        ticker_forecasts = apply_sentiment_adjustment(ticker_forecasts, sentiment)
         forecast_summary = build_forecast_summary(ticker_forecasts)
     except Exception as e:
         ticker_forecasts = {}
         forecast_summary = {}
+
+    # --- Build & cache covariance matrix for optimizer ---
+    cov_matrix_json = "[]"
+    try:
+        port_returns_only = returns[[t for t in available_tickers if t in returns.columns]].dropna()
+        returns_dict = {col: port_returns_only[col].tolist() for col in port_returns_only.columns}
+        cov = build_covariance_matrix(returns_dict, available_tickers)
+        if cov is not None:
+            cov_matrix_json = json.dumps(cov)
+    except Exception:
+        pass
 
     # --- AI Insights ---
     try:
@@ -222,10 +242,21 @@ async def analyze_portfolio(req: PortfolioRequest):
             "INSERT OR REPLACE INTO agent_insights VALUES (?,?,?)",
             (portfolio_id, json.dumps(insights), now),
         )
-        # Cache forecasts
+        # Cache forecasts (with sentiment adjustments baked in)
         cur.execute(
             "INSERT OR REPLACE INTO forecasts VALUES (?,?,?)",
             (portfolio_id, json.dumps(ticker_forecasts), now),
+        )
+        # Cache returns + covariance for optimizer
+        cur.execute(
+            "INSERT OR REPLACE INTO portfolio_returns VALUES (?,?,?,?,?)",
+            (
+                portfolio_id,
+                json.dumps(available_tickers),
+                "{}",  # raw returns not stored (large); cov is enough
+                cov_matrix_json,
+                now,
+            ),
         )
         conn.commit()
     finally:
@@ -397,4 +428,65 @@ def get_forecast(portfolio_id: str):
     return ForecastResult(
         portfolio_id=portfolio_id,
         ticker_forecasts=ticker_forecasts,
+    )
+
+
+@router.get("/{portfolio_id}/optimize", response_model=OptimizationResult)
+def get_optimization(portfolio_id: str):
+    """
+    Return mean-variance optimised portfolio allocations.
+
+    Uses Prophet 1-year expected returns as mu and historical daily return
+    covariance (annualised) as the risk model.
+    Three strategies: Max Sharpe, Min Volatility, Equal Weight.
+    """
+    conn = _get_db()
+    try:
+        cur = conn.cursor()
+        # Load tickers + covariance
+        ret_row = cur.execute(
+            "SELECT tickers_json, cov_matrix_json FROM portfolio_returns WHERE portfolio_id = ?",
+            (portfolio_id,),
+        ).fetchone()
+        # Load forecast for expected returns
+        fc_row = cur.execute(
+            "SELECT forecast_json FROM forecasts WHERE portfolio_id = ?",
+            (portfolio_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if not ret_row or not fc_row:
+        raise HTTPException(status_code=404, detail="Portfolio not found. Run /analyze first.")
+
+    tickers = json.loads(ret_row[0])
+    cov_matrix = json.loads(ret_row[1])
+    ticker_forecasts = json.loads(fc_row[0])
+
+    if not cov_matrix:
+        raise HTTPException(
+            status_code=422,
+            detail="Covariance matrix unavailable — not enough historical data.",
+        )
+
+    # Build expected returns dict from Prophet 1y forecast
+    expected_returns: dict[str, float] = {}
+    for ticker in tickers:
+        tf = ticker_forecasts.get(ticker, {})
+        hist = tf.get("historical", [])
+        fc_1y = tf.get("forecast_1y", {})
+        if hist and fc_1y and hist[-1].get("yhat", 0) > 0:
+            current = hist[-1]["yhat"]
+            future = fc_1y.get("yhat", current)
+            expected_returns[ticker] = ((future - current) / current) * 100
+        else:
+            expected_returns[ticker] = 0.0
+
+    result = optimize_portfolio(tickers, expected_returns, cov_matrix)
+
+    return OptimizationResult(
+        portfolio_id=portfolio_id,
+        max_sharpe=PortfolioAllocation(**result["max_sharpe"]),
+        min_volatility=PortfolioAllocation(**result["min_volatility"]),
+        equal_weight=PortfolioAllocation(**result["equal_weight"]),
     )

@@ -4,6 +4,7 @@ import type {
   CausalGraph,
   ForecastResult,
   LivePrice,
+  OptimizationResult,
   PortfolioRequest,
   PortfolioResponse,
   SentimentResult,
@@ -70,6 +71,10 @@ export async function getInsights(id: string): Promise<AgentInsights> {
 
 export async function getForecast(id: string): Promise<ForecastResult> {
   return apiFetch<ForecastResult>(`/api/v1/portfolio/${id}/forecast`);
+}
+
+export async function getOptimization(id: string): Promise<OptimizationResult> {
+  return apiFetch<OptimizationResult>(`/api/v1/portfolio/${id}/optimize`);
 }
 
 // ── WebSocket live prices ─────────────────────────────────────────────────────

@@ -229,33 +229,65 @@ async def fetch_news(
 
 async def search_ticker(query: str, finnhub_api_key: Optional[str] = None) -> list[dict]:
     """
-    Search for ticker symbols by company name using Finnhub /search endpoint.
+    Search for ticker symbols by company name.
+    Primary: Finnhub /search (requires API key).
+    Fallback: yfinance Search (no API key needed, works for most US equities).
     Returns up to 10 matching [{symbol, description, type}].
-    Falls back to empty list if no API key or request fails.
     """
-    import httpx
-    api_key = finnhub_api_key or os.getenv("FINNHUB_API_KEY", "")
-    if not api_key or not query.strip():
+    query = query.strip()
+    if not query:
         return []
 
-    url = f"https://finnhub.io/api/v1/search?q={query.strip()}&token={api_key}"
-    async with httpx.AsyncClient(timeout=5) as client:
+    # ── Primary: Finnhub ───────────────────────────────────────────────────────
+    api_key = finnhub_api_key or os.getenv("FINNHUB_API_KEY", "")
+    if api_key:
+        import httpx
+        url = f"https://finnhub.io/api/v1/search?q={query}&token={api_key}"
+        async with httpx.AsyncClient(timeout=5) as client:
+            try:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                data = resp.json()
+                results = [
+                    {
+                        "symbol": r["symbol"],
+                        "description": r.get("description", r["symbol"]),
+                        "type": r.get("type", ""),
+                    }
+                    for r in data.get("result", [])[:10]
+                    if r.get("type") in ("Common Stock", "ETP", "ADR")
+                ]
+                if results:
+                    return results
+            except Exception as e:
+                logger.warning(f"Finnhub search failed for '{query}': {e}")
+
+    # ── Fallback: yfinance Search (no API key required) ────────────────────────
+    loop = asyncio.get_event_loop()
+
+    def _yf_search():
         try:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            data = resp.json()
-            return [
-                {
-                    "symbol": r["symbol"],
-                    "description": r.get("description", r["symbol"]),
-                    "type": r.get("type", ""),
-                }
-                for r in data.get("result", [])[:10]
-                if r.get("type") in ("Common Stock", "ETP", "ADR")
-            ]
+            search = yf.Search(query, max_results=10)
+            results = []
+            for r in search.quotes:
+                symbol = r.get("symbol", "")
+                name = r.get("longname") or r.get("shortname") or symbol
+                q_type = r.get("quoteType", "")
+                # Map yfinance quoteType to human-readable
+                type_map = {"EQUITY": "Common Stock", "ETF": "ETP", "INDEX": "Index"}
+                friendly_type = type_map.get(q_type, q_type)
+                if symbol and q_type in ("EQUITY", "ETF"):
+                    results.append({
+                        "symbol": symbol,
+                        "description": name,
+                        "type": friendly_type,
+                    })
+            return results[:10]
         except Exception as e:
-            logger.warning(f"Ticker search failed for '{query}': {e}")
+            logger.warning(f"yfinance search fallback failed for '{query}': {e}")
             return []
+
+    return await loop.run_in_executor(None, _yf_search)
 
 
 async def fetch_macro_indicators(fred_api_key: Optional[str] = None) -> dict:
