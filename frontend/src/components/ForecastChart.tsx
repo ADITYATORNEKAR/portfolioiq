@@ -33,6 +33,7 @@ const HORIZON_DAYS: Record<Horizon, number> = {
 
 interface Props {
   forecast: TickerForecast;
+  companyName?: string;
 }
 
 function fmt(n: number) {
@@ -48,11 +49,22 @@ function fmtPct(n: number) {
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 }
 
-export default function ForecastChart({ forecast }: Props) {
+export default function ForecastChart({ forecast, companyName }: Props) {
   const [horizon, setHorizon] = useState<Horizon>("1y");
 
   const horizonDays = HORIZON_DAYS[horizon];
   const futureSlice = forecast.future_series.slice(0, horizonDays);
+
+  // ── Trend direction: compare last vs first point of the selected slice ───
+  const isTrendUp =
+    futureSlice.length > 1
+      ? futureSlice[futureSlice.length - 1].yhat >= futureSlice[0].yhat
+      : true;
+
+  // Neon green for upward, orange-red for downward
+  const trendColor = isTrendUp ? "#22c55e" : "#f97316";
+  const gradId = `gradF_${forecast.ticker}`;
+  const bandId = `gradB_${forecast.ticker}`;
 
   const lastHistDate =
     forecast.historical.length > 0
@@ -101,12 +113,10 @@ export default function ForecastChart({ forecast }: Props) {
       ? ((target1y.yhat - currentPrice) / currentPrice) * 100
       : null;
 
-  // Base y-axis on forecast/actual prices only — confidence bands (yhat_upper) can be
-  // very wide due to Prophet weekly seasonality, which would skew the axis to 2× price.
+  // Base y-axis on forecast/actual prices only
   const allPrices = chartData.flatMap((d) =>
     [d.actual, d.forecast].filter((v): v is number => v !== null)
   );
-  // Extend domain to include the 12-month target price even on shorter horizons
   if (target1y?.yhat) allPrices.push(target1y.yhat);
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) * 0.95 : 0;
   const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) * 1.05 : 100;
@@ -123,12 +133,34 @@ export default function ForecastChart({ forecast }: Props) {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="font-mono text-lg font-bold text-white">{forecast.ticker}</h3>
-          <p className="text-xs text-slate-400">Prophet model · 12-month forecast</p>
+          {/* Company name [TICKER] format */}
+          <h3 className="font-mono text-lg font-bold text-white">
+            {companyName ? (
+              <>
+                <span className="font-sans font-semibold">{companyName}</span>
+                <span className="ml-1.5 text-slate-400">[{forecast.ticker}]</span>
+              </>
+            ) : (
+              forecast.ticker
+            )}
+          </h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-slate-400">Prophet model · 12-month forecast</p>
+            {/* Trend badge */}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                isTrendUp
+                  ? "bg-green-500/15 text-green-400"
+                  : "bg-orange-500/15 text-orange-400"
+              }`}
+            >
+              {isTrendUp ? "↑ Upward" : "↓ Downward"}
+            </span>
+          </div>
         </div>
 
         {/* Horizon toggle */}
-        <div className="flex gap-1 rounded-lg bg-surface-dark p-1">
+        <div className="flex gap-1 rounded-lg bg-surface-border/30 p-1">
           {HORIZONS.map((h) => (
             <button
               key={h.id}
@@ -149,13 +181,13 @@ export default function ForecastChart({ forecast }: Props) {
       {horizonPoint && (
         <div className="mb-4 space-y-3">
           <div className={`grid gap-3 ${show12mCard ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
-            <div className="rounded-lg bg-surface-dark p-3">
+            <div className="rounded-lg bg-surface/60 border border-surface-border/50 p-3">
               <p className="text-xs text-slate-500">Current Price</p>
               <p className="mt-0.5 text-sm font-semibold text-white">
                 {currentPrice ? fmt(currentPrice) : "—"}
               </p>
             </div>
-            <div className="rounded-lg bg-surface-dark p-3">
+            <div className="rounded-lg bg-surface/60 border border-surface-border/50 p-3">
               <p className="text-xs text-slate-500">Forecast ({horizon === "1y" ? "12m" : horizon})</p>
               <p
                 className={`mt-0.5 text-sm font-semibold ${
@@ -165,7 +197,7 @@ export default function ForecastChart({ forecast }: Props) {
                 {fmt(horizonPoint.yhat)}
               </p>
             </div>
-            <div className="rounded-lg bg-surface-dark p-3">
+            <div className="rounded-lg bg-surface/60 border border-surface-border/50 p-3">
               <p className="text-xs text-slate-500">Expected Return</p>
               <p
                 className={`mt-0.5 text-sm font-semibold ${
@@ -176,9 +208,9 @@ export default function ForecastChart({ forecast }: Props) {
               </p>
             </div>
 
-            {/* 12-Month Target card — shown only on horizons shorter than 1y */}
+            {/* 12-Month Target card */}
             {show12mCard && (
-              <div className="rounded-lg bg-surface-dark p-3 border border-indigo-500/25">
+              <div className="rounded-lg bg-surface/60 border border-indigo-500/25 p-3">
                 <p className="text-xs text-indigo-400">12-Month Target</p>
                 <p
                   className={`mt-0.5 text-sm font-semibold ${
@@ -200,7 +232,7 @@ export default function ForecastChart({ forecast }: Props) {
 
           {/* Sentiment-adjusted 30d card */}
           {horizon === "30d" && forecast.sentiment_adjusted_30d && (
-            <div className="rounded-lg border border-surface-border bg-surface-dark p-3 flex items-center justify-between gap-4">
+            <div className="rounded-lg border border-surface-border bg-surface/60 p-3 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 min-w-0">
                 <SentimentDot score={forecast.sentiment_score ?? 0} />
                 <div className="min-w-0">
@@ -248,13 +280,15 @@ export default function ForecastChart({ forecast }: Props) {
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
             <defs>
-              <linearGradient id={`gradForecast_${forecast.ticker}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              {/* Forecast fill gradient — trend-colored */}
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor={trendColor} stopOpacity={0.30} />
+                <stop offset="95%" stopColor={trendColor} stopOpacity={0.02} />
               </linearGradient>
-              <linearGradient id={`gradBand_${forecast.ticker}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              {/* Confidence band fill — trend-colored, more visible than before */}
+              <linearGradient id={bandId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor={trendColor} stopOpacity={0.18} />
+                <stop offset="95%" stopColor={trendColor} stopOpacity={0.04} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -288,26 +322,25 @@ export default function ForecastChart({ forecast }: Props) {
                   : name === "forecast"
                   ? "Forecast"
                   : name === "upper"
-                  ? "Upper bound"
-                  : "Lower bound",
+                  ? "Upper bound (80% CI)"
+                  : "Lower bound (80% CI)",
               ]}
             />
             {/* Today marker */}
             {lastHistDate && (
               <ReferenceLine
                 x={lastHistDate}
-                stroke="rgba(255,255,255,0.2)"
+                stroke="rgba(255,255,255,0.25)"
                 strokeDasharray="4 4"
                 label={{ value: "Today", fill: "#94a3b8", fontSize: 10 }}
               />
             )}
-            {/* 12-month target price line — always visible so shorter horizons
-                show where the stock is expected to be in a year */}
+            {/* 12-month target price line */}
             {target1y && target1y.yhat > 0 && (
               <ReferenceLine
                 y={target1y.yhat}
                 stroke="#6366f1"
-                strokeOpacity={0.5}
+                strokeOpacity={0.6}
                 strokeDasharray="3 3"
                 label={{
                   value: `12m ${fmt(target1y.yhat)}`,
@@ -317,22 +350,27 @@ export default function ForecastChart({ forecast }: Props) {
                 }}
               />
             )}
-            {/* Confidence band */}
+            {/* Confidence band — upper fill (trend color) */}
             <Area
               type="monotone"
               dataKey="upper"
-              stroke="none"
-              fill={`url(#gradBand_${forecast.ticker})`}
+              stroke={trendColor}
+              strokeWidth={0.5}
+              strokeOpacity={0.4}
+              fill={`url(#${bandId})`}
               isAnimationActive={false}
             />
+            {/* Confidence band — lower (clear the fill below lower bound) */}
             <Area
               type="monotone"
               dataKey="lower"
-              stroke="none"
+              stroke={trendColor}
+              strokeWidth={0.5}
+              strokeOpacity={0.4}
               fill="transparent"
               isAnimationActive={false}
             />
-            {/* Historical actuals */}
+            {/* Historical actuals — slate gray */}
             <Area
               type="monotone"
               dataKey="actual"
@@ -342,13 +380,13 @@ export default function ForecastChart({ forecast }: Props) {
               dot={false}
               isAnimationActive={false}
             />
-            {/* Forecast line */}
+            {/* Forecast line — trend-colored, dashed */}
             <Area
               type="monotone"
               dataKey="forecast"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              fill={`url(#gradForecast_${forecast.ticker})`}
+              stroke={trendColor}
+              strokeWidth={2.5}
+              fill={`url(#${gradId})`}
               strokeDasharray="5 3"
               dot={false}
               isAnimationActive={false}
@@ -364,7 +402,10 @@ export default function ForecastChart({ forecast }: Props) {
       {/* Confidence range note */}
       {horizonPoint && (
         <p className="mt-2 text-center text-xs text-slate-500">
-          80% confidence interval: {fmt(horizonPoint.yhat_lower)} – {fmt(horizonPoint.yhat_upper)}
+          80% confidence interval:{" "}
+          <span style={{ color: trendColor + "b0" }}>{fmt(horizonPoint.yhat_lower)}</span>
+          {" – "}
+          <span style={{ color: trendColor + "b0" }}>{fmt(horizonPoint.yhat_upper)}</span>
         </p>
       )}
     </div>

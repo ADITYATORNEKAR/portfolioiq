@@ -12,7 +12,8 @@ interface Props {
     benchmark: string,
     finnhubKey?: string,
     groqKey?: string,
-    positions?: PositionInput[]
+    positions?: PositionInput[],
+    tickerNames?: Record<string, string>
   ) => void;
   isLoading: boolean;
   defaultTickers?: string;
@@ -126,13 +127,17 @@ export default function PortfolioForm({ onAnalyze, isLoading, defaultTickers }: 
         purchase_price: parseFloat(r.purchase_price),
       }));
 
+    const tickerNames: Record<string, string> = {};
+    rows.forEach((r) => { if (r.companyName) tickerNames[r.ticker] = r.companyName; });
+
     onAnalyze(
       tickers,
       period,
       benchmark,
       undefined,
       undefined,
-      positionsPayload.length > 0 ? positionsPayload : undefined
+      positionsPayload.length > 0 ? positionsPayload : undefined,
+      Object.keys(tickerNames).length > 0 ? tickerNames : undefined
     );
   };
 

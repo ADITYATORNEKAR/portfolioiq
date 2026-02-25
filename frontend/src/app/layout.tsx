@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import Link from "next/link";
 import { BarChart2, Github } from "lucide-react";
+import ThemeSwitcher, { ThemeInitScript } from "@/components/ThemeSwitcher";
 
 export default function RootLayout({
   children,
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <ThemeInitScript />
         <title>PortfolioIQ</title>
         <meta
           name="description"
@@ -41,6 +43,7 @@ export default function RootLayout({
                   <span className="sm:hidden">PortfolioIQ</span>
                 </Link>
                 <div className="flex items-center gap-4">
+                  <ThemeSwitcher />
                   <Link
                     href="/analyze"
                     className="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-500 transition-colors"

@@ -55,6 +55,7 @@ function AnalyzePage() {
   const [groqKey, setGroqKey] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tickerNameMap, setTickerNameMap] = useState<Record<string, string>>({});
 
   // Pre-fill tickers from URL params
   const urlTickers = searchParams.get("tickers") || "";
@@ -65,12 +66,14 @@ function AnalyzePage() {
     benchmark: string,
     fKey?: string,
     gKey?: string,
-    positions?: PositionInput[]
+    positions?: PositionInput[],
+    nameMap?: Record<string, string>
   ) => {
     setIsAnalyzing(true);
     setError(null);
     setPortfolioId(null);
     setAnalysisResult(null);
+    if (nameMap) setTickerNameMap(nameMap);
 
     if (fKey) setFinnhubKey(fKey);
     if (gKey) setGroqKey(gKey);
@@ -199,7 +202,7 @@ function AnalyzePage() {
                 <SentimentTab portfolioId={portfolioId} finnhubKey={finnhubKey} />
               )}
               {activeTab === "forecast" && (
-                <ForecastTab portfolioId={portfolioId} pnlSummary={pnlSummary} />
+                <ForecastTab portfolioId={portfolioId} pnlSummary={pnlSummary} tickerNameMap={tickerNameMap} />
               )}
               {activeTab === "simulator" && (
                 <SimulatorTab
@@ -350,9 +353,11 @@ function SentimentTab({
 function ForecastTab({
   portfolioId,
   pnlSummary,
+  tickerNameMap,
 }: {
   portfolioId: string;
   pnlSummary?: PortfolioPositionSummary;
+  tickerNameMap?: Record<string, string>;
 }) {
   const [view, setView] = useState<"combined" | "individual">("combined");
 
@@ -425,7 +430,13 @@ function ForecastTab({
       {(view === "individual" || !hasCombined) &&
         tickerEntries.map(([ticker, tickerForecast]) => {
           if (!tickerForecast || tickerForecast.historical.length === 0) return null;
-          return <ForecastChart key={ticker} forecast={tickerForecast} />;
+          return (
+            <ForecastChart
+              key={ticker}
+              forecast={tickerForecast}
+              companyName={tickerNameMap?.[ticker]}
+            />
+          );
         })}
     </div>
   );

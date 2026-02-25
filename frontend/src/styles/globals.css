@@ -4,18 +4,61 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0f172a;
-  --card: #1e293b;
+/* ─────────────────────────────────────────────────────────────────────────────
+   COLOR THEMES — applied via [data-theme] attribute on <html>
+   RGB channel values (no rgb() wrapper) so Tailwind opacity modifiers work.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Default: Dark Terminal (blue accent, deep slate) ────────────────────── */
+:root,
+[data-theme="dark-terminal"] {
+  --brand-50:   239 246 255;    /* blue-50  */
+  --brand-500:  59  130 246;    /* blue-500 */
+  --brand-600:  37  99  235;    /* blue-600 */
+  --surface:    15  23  42;     /* slate-900 */
+  --surface-card:   30  41  59; /* slate-800 */
+  --surface-border: 51  65  85; /* slate-700 */
+  /* Legacy aliases used in body / scrollbar / misc inline styles */
+  --bg:     #0f172a;
+  --card:   #1e293b;
   --border: #334155;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
+  --text:   #f1f5f9;
+  --muted:  #94a3b8;
   --accent: #3b82f6;
-  --green: #22c55e;
-  --red: #ef4444;
+  --green:  #22c55e;
+  --red:    #ef4444;
   --yellow: #eab308;
 }
 
+/* ── Cyber Neon (cyan accent, dark gray) ─────────────────────────────────── */
+[data-theme="cyber-neon"] {
+  --brand-50:   236 254 255;    /* cyan-50  */
+  --brand-500:  6   182 212;    /* cyan-500 */
+  --brand-600:  8   145 178;    /* cyan-600 */
+  --surface:    17  24  39;     /* gray-900 */
+  --surface-card:   31  41  55; /* gray-800 */
+  --surface-border: 75  85  99; /* gray-600 */
+  --bg:     #111827;
+  --card:   #1f2937;
+  --border: #4b5563;
+  --accent: #06b6d4;
+}
+
+/* ── Navy Trust (amber accent, midnight navy) ────────────────────────────── */
+[data-theme="navy-trust"] {
+  --brand-50:   255 251 235;    /* amber-50  */
+  --brand-500:  245 158 11;     /* amber-500 */
+  --brand-600:  217 119 6;      /* amber-600 */
+  --surface:    11  17  32;     /* custom navy */
+  --surface-card:   15  25  50;
+  --surface-border: 30  52  80;
+  --bg:     #0b1120;
+  --card:   #0f1932;
+  --border: #1e3450;
+  --accent: #f59e0b;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
 }
@@ -28,55 +71,27 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--card);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--card); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* Card */
 .card {
   @apply bg-surface-card border border-surface-border rounded-xl p-6;
 }
 
-/* Badge */
-.badge-green {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400;
-}
-.badge-red {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400;
-}
-.badge-yellow {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400;
-}
-.badge-blue {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400;
-}
+/* Badges */
+.badge-green  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400; }
+.badge-red    { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400; }
+.badge-yellow { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400; }
+.badge-blue   { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400; }
 
-/* Price animations */
-.price-up {
-  animation: priceUpAnim 0.8s ease-out;
-}
-.price-down {
-  animation: priceDownAnim 0.8s ease-out;
-}
+/* Price flash animations */
+.price-up   { animation: priceUpAnim   0.8s ease-out; }
+.price-down { animation: priceDownAnim 0.8s ease-out; }
 
-@keyframes priceUpAnim {
-  0% { background-color: rgba(34, 197, 94, 0.25); }
-  100% { background-color: transparent; }
-}
-@keyframes priceDownAnim {
-  0% { background-color: rgba(239, 68, 68, 0.25); }
-  100% { background-color: transparent; }
-}
+@keyframes priceUpAnim   { 0% { background-color: rgba(34,197,94,0.25); }  100% { background-color: transparent; } }
+@keyframes priceDownAnim { 0% { background-color: rgba(239,68,68,0.25); }  100% { background-color: transparent; } }
 
-/* Loading pulse */
-.skeleton {
-  @apply animate-pulse bg-surface-border rounded;
-}
+/* Loading skeleton */
+.skeleton { @apply animate-pulse bg-surface-border rounded; }

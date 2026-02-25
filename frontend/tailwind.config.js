@@ -10,15 +10,18 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: "#eff6ff",
-          500: "#3b82f6",
-          600: "#2563eb",
-          900: "#1e3a8a",
+          // CSS variable–based so all three themes can override the accent color.
+          // The "<alpha-value>" placeholder enables Tailwind opacity modifiers
+          // like bg-brand-500/10 → rgb(var(--brand-500) / 0.1)
+          50:  "rgb(var(--brand-50)  / <alpha-value>)",
+          500: "rgb(var(--brand-500) / <alpha-value>)",
+          600: "rgb(var(--brand-600) / <alpha-value>)",
+          900: "#1e3a8a",  // static deep blue for very rare use
         },
         surface: {
-          DEFAULT: "#0f172a",
-          card: "#1e293b",
-          border: "#334155",
+          DEFAULT: "rgb(var(--surface)        / <alpha-value>)",
+          card:    "rgb(var(--surface-card)   / <alpha-value>)",
+          border:  "rgb(var(--surface-border) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -26,18 +29,12 @@ module.exports = {
         mono: ["JetBrains Mono", "monospace"],
       },
       animation: {
-        "price-up": "priceUp 0.5s ease-out",
+        "price-up":   "priceUp   0.5s ease-out",
         "price-down": "priceDown 0.5s ease-out",
       },
       keyframes: {
-        priceUp: {
-          "0%": { backgroundColor: "rgb(34 197 94 / 0.3)" },
-          "100%": { backgroundColor: "transparent" },
-        },
-        priceDown: {
-          "0%": { backgroundColor: "rgb(239 68 68 / 0.3)" },
-          "100%": { backgroundColor: "transparent" },
-        },
+        priceUp:   { "0%": { backgroundColor: "rgb(34 197 94 / 0.3)"  }, "100%": { backgroundColor: "transparent" } },
+        priceDown: { "0%": { backgroundColor: "rgb(239 68 68 / 0.3)"  }, "100%": { backgroundColor: "transparent" } },
       },
     },
   },
