@@ -21,7 +21,7 @@ from app.services.data_service import fetch_live_price
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-REFRESH_INTERVAL_SECONDS = 5
+REFRESH_INTERVAL_SECONDS = 15
 
 
 @router.websocket("/prices")

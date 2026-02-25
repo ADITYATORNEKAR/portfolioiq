@@ -11,6 +11,7 @@ Sources (all free):
 import asyncio
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -19,6 +20,25 @@ import pandas as pd
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
+
+# ── Live-price cache ───────────────────────────────────────────────────────────
+# Keyed by (ticker, api_key_hash).  Entries expire after PRICE_CACHE_TTL seconds
+# so Finnhub is called at most once per ticker per TTL window (~44 calls/min
+# for 11 tickers with TTL=15s vs. the free-tier cap of 60 calls/min).
+_PRICE_CACHE: dict[str, dict] = {}   # {"AAPL": {"ts": float, "data": dict}}
+PRICE_CACHE_TTL = 15  # seconds
+
+
+def _cache_get(ticker: str) -> Optional[dict]:
+    entry = _PRICE_CACHE.get(ticker)
+    if entry and (time.monotonic() - entry["ts"]) < PRICE_CACHE_TTL:
+        return entry["data"]
+    return None
+
+
+def _cache_set(ticker: str, data: dict) -> None:
+    _PRICE_CACHE[ticker] = {"ts": time.monotonic(), "data": data}
+
 
 # Free finance RSS feeds (no API key needed)
 FINANCE_RSS_FEEDS = [
@@ -106,10 +126,16 @@ async def fetch_live_price(
 ) -> Optional[dict]:
     """
     Fetch real-time quote via Finnhub REST API (free tier: 60 calls/min).
-    Falls back to yfinance delayed quote if no API key provided.
+    Results are cached for PRICE_CACHE_TTL seconds to stay under rate limits.
+    Falls back to yfinance delayed quote on 429 or when no API key is provided.
 
     Returns dict with price, change, change_pct, high, low, open, prev_close.
     """
+    # Return cached result if still fresh
+    cached = _cache_get(ticker)
+    if cached:
+        return cached
+
     api_key = finnhub_api_key or os.getenv("FINNHUB_API_KEY", "")
 
     if api_key:
@@ -118,20 +144,26 @@ async def fetch_live_price(
         async with httpx.AsyncClient(timeout=10) as client:
             try:
                 resp = await client.get(url)
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("c", 0) > 0:
-                    return {
-                        "ticker": ticker,
-                        "price": data["c"],
-                        "change": data["d"],
-                        "change_pct": data["dp"],
-                        "high": data["h"],
-                        "low": data["l"],
-                        "open": data["o"],
-                        "prev_close": data["pc"],
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    }
+                if resp.status_code == 429:
+                    # Rate-limited — fall through to yfinance silently
+                    logger.debug(f"Finnhub 429 for {ticker}, using yfinance fallback")
+                else:
+                    resp.raise_for_status()
+                    data = resp.json()
+                    if data.get("c", 0) > 0:
+                        result = {
+                            "ticker": ticker,
+                            "price": data["c"],
+                            "change": data["d"],
+                            "change_pct": data["dp"],
+                            "high": data["h"],
+                            "low": data["l"],
+                            "open": data["o"],
+                            "prev_close": data["pc"],
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                        _cache_set(ticker, result)
+                        return result
             except Exception as e:
                 logger.warning(f"Finnhub quote failed for {ticker}: {e}")
 
@@ -159,7 +191,10 @@ async def fetch_live_price(
             }
         return None
 
-    return await loop.run_in_executor(None, _yf_quote)
+    result = await loop.run_in_executor(None, _yf_quote)
+    if result:
+        _cache_set(ticker, result)
+    return result
 
 
 async def fetch_news(
