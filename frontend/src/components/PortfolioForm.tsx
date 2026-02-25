@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
-import { X, ChevronDown, Key, Search, DollarSign } from "lucide-react";
+import { X, ChevronDown, Search, DollarSign } from "lucide-react";
 import { searchTickers } from "@/lib/api";
 import type { PositionInput, TickerSearchResult } from "@/lib/types";
 
@@ -29,9 +29,8 @@ export default function PortfolioForm({ onAnalyze, isLoading, defaultTickers }: 
   const [input, setInput] = useState("");
   const [period, setPeriod] = useState<"1y" | "2y" | "5y">("2y");
   const [benchmark, setBenchmark] = useState("SPY");
-  const [finnhubKey, setFinnhubKey] = useState("");
-  const [groqKey, setGroqKey] = useState("");
-  const [showKeys, setShowKeys] = useState(false);
+  const [finnhubKey] = useState("");
+  const [groqKey] = useState("");
 
   // Company name search state
   const [searchResults, setSearchResults] = useState<TickerSearchResult[]>([]);
@@ -328,76 +327,6 @@ export default function PortfolioForm({ onAnalyze, isLoading, defaultTickers }: 
           )}
         </div>
       )}
-
-      {/* Optional API keys */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowKeys(!showKeys)}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-        >
-          <Key className="h-3 w-3" />
-          {showKeys ? "Hide" : "Add"} optional API keys (for live data & AI insights)
-          <ChevronDown
-            className={`h-3 w-3 transition-transform ${showKeys ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {showKeys && (
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">
-                Finnhub API Key{" "}
-                <span className="text-slate-600">
-                  — free at{" "}
-                  <a
-                    href="https://finnhub.io/register"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-500 hover:underline"
-                  >
-                    finnhub.io
-                  </a>{" "}
-                  (live prices + news + search)
-                </span>
-              </label>
-              <input
-                type="password"
-                value={finnhubKey}
-                onChange={(e) => setFinnhubKey(e.target.value)}
-                className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-brand-500 outline-none transition-colors"
-                placeholder="fh_xxxxxxxxxxxxxxxx"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">
-                Groq API Key{" "}
-                <span className="text-slate-600">
-                  — free at{" "}
-                  <a
-                    href="https://console.groq.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-500 hover:underline"
-                  >
-                    console.groq.com
-                  </a>{" "}
-                  (AI insights via Llama-3.3-70b)
-                </span>
-              </label>
-              <input
-                type="password"
-                value={groqKey}
-                onChange={(e) => setGroqKey(e.target.value)}
-                className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-brand-500 outline-none transition-colors"
-                placeholder="gsk_xxxxxxxxxxxxxxxx"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Submit */}
       <button
