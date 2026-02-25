@@ -10,6 +10,7 @@ import {
   getSentiment,
   getInsights,
   getForecast,
+  searchTickers,
 } from "@/lib/api";
 import type { PortfolioResponse, PositionInput, PortfolioPositionSummary } from "@/lib/types";
 import PortfolioForm from "@/components/PortfolioForm";
@@ -73,7 +74,7 @@ function AnalyzePage() {
     setError(null);
     setPortfolioId(null);
     setAnalysisResult(null);
-    if (nameMap) setTickerNameMap(nameMap);
+    setTickerNameMap({});
 
     if (fKey) setFinnhubKey(fKey);
     if (gKey) setGroqKey(gKey);
@@ -90,6 +91,26 @@ function AnalyzePage() {
       setAnalysisResult(result);
       setPortfolioId(result.portfolio_id);
       setActiveTab("causal");
+
+      // Enrich ticker name map for any tickers without a company name
+      const enrichedMap: Record<string, string> = { ...(nameMap || {}) };
+      const missing = tickers.filter((t) => !enrichedMap[t]);
+      if (missing.length > 0) {
+        const lookups = await Promise.allSettled(
+          missing.map((t) =>
+            searchTickers(t).then((r) => ({
+              ticker: t,
+              name: r.find((x) => x.symbol === t)?.description ?? "",
+            }))
+          )
+        );
+        lookups.forEach((r) => {
+          if (r.status === "fulfilled" && r.value.name) {
+            enrichedMap[r.value.ticker] = r.value.name;
+          }
+        });
+      }
+      setTickerNameMap(enrichedMap);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Analysis failed. Please try again.");
     } finally {
