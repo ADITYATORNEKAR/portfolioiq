@@ -19,6 +19,7 @@ import AgentInsights from "@/components/AgentInsights";
 import LivePrices from "@/components/LivePrices";
 import RiskMetrics from "@/components/RiskMetrics";
 import ForecastChart from "@/components/ForecastChart";
+import PortfolioForecastChart from "@/components/PortfolioForecastChart";
 import PortfolioSimulator from "@/components/PortfolioSimulator";
 import PortfolioOptimizer from "@/components/PortfolioOptimizer";
 import {
@@ -367,6 +368,12 @@ function ForecastTab({ portfolioId }: { portfolioId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* Combined portfolio forecast (only when positions were provided) */}
+      {data.portfolio_forecast && (
+        <PortfolioForecastChart forecast={data.portfolio_forecast} />
+      )}
+
+      {/* Individual ticker forecasts */}
       {tickerEntries.map(([ticker, tickerForecast]) => {
         if (!tickerForecast || tickerForecast.historical.length === 0) return null;
         return <ForecastChart key={ticker} forecast={tickerForecast} />;

@@ -240,9 +240,29 @@ class TickerForecast(BaseModel):
     sentiment_adjusted_30d: Optional[ForecastPoint] = None  # sentiment-shifted 30d point
 
 
+class PortfolioForecast(BaseModel):
+    """
+    Combined portfolio-level 12-month forecast.
+
+    Dollar values are computed as: Σ quantity_i × yhat_i(date)
+    Weights are current market-value proportions: quantity_i × current_price_i / total_value.
+    """
+    weights: dict[str, float]           # ticker → % of current portfolio value
+    current_portfolio_value: float      # Σ quantity_i × current_price_i  ($)
+    forecast_1y_value: float            # expected portfolio value in 12 months ($)
+    expected_return_pct: float          # (forecast_1y_value / current_value - 1) × 100
+    forecast_30d: ForecastPoint         # yhat = portfolio dollar value at 30d
+    forecast_60d: ForecastPoint
+    forecast_90d: ForecastPoint
+    forecast_6m: ForecastPoint
+    forecast_1y: ForecastPoint
+    future_series: list[ForecastPoint]  # daily portfolio dollar-value series (365 days)
+
+
 class ForecastResult(BaseModel):
     portfolio_id: str
     ticker_forecasts: dict[str, TickerForecast]
+    portfolio_forecast: Optional[PortfolioForecast] = None  # set when positions provided
 
 
 # ── Portfolio Optimization ─────────────────────────────────────────────────────

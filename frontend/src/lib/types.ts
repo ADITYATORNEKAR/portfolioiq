@@ -195,9 +195,23 @@ export interface TickerForecast {
   sentiment_adjusted_30d?: ForecastPoint;
 }
 
+export interface PortfolioForecast {
+  weights: Record<string, number>;      // ticker → % of current portfolio value
+  current_portfolio_value: number;      // total current market value ($)
+  forecast_1y_value: number;            // expected total value in 12 months ($)
+  expected_return_pct: number;
+  forecast_30d: ForecastPoint;
+  forecast_60d: ForecastPoint;
+  forecast_90d: ForecastPoint;
+  forecast_6m: ForecastPoint;
+  forecast_1y: ForecastPoint;
+  future_series: ForecastPoint[];       // daily portfolio dollar-value series
+}
+
 export interface ForecastResult {
   portfolio_id: string;
   ticker_forecasts: Record<string, TickerForecast>;
+  portfolio_forecast?: PortfolioForecast;
 }
 
 // ── Portfolio Optimization ─────────────────────────────────────────────────────

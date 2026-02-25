@@ -41,6 +41,7 @@ from app.services.data_service import fetch_portfolio_data, search_ticker
 from app.services.forecast_service import (
     apply_sentiment_adjustment,
     build_forecast_summary,
+    build_portfolio_forecast,
     run_portfolio_forecast,
 )
 from app.services.optimizer_service import build_covariance_matrix, optimize_portfolio
@@ -167,11 +168,25 @@ async def analyze_portfolio(req: PortfolioRequest):
         sentiment = {"ticker_sentiment": {}, "error": str(e)}
 
     # --- Prophet Forecasting ---
+    portfolio_forecast_dict = None
     try:
         ticker_forecasts = await run_portfolio_forecast(prices, available_tickers)
         # Apply sentiment adjustment to 30d forecasts (±5% cap)
         ticker_forecasts = apply_sentiment_adjustment(ticker_forecasts, sentiment)
         forecast_summary = build_forecast_summary(ticker_forecasts)
+
+        # Build combined 12-month portfolio forecast if positions provided
+        if req.positions:
+            pos_for_pf = [
+                {
+                    "ticker": pos.ticker.upper(),
+                    "quantity": pos.quantity,
+                    "current_price": float(prices[pos.ticker.upper()].dropna().iloc[-1])
+                    if pos.ticker.upper() in prices.columns else pos.purchase_price,
+                }
+                for pos in req.positions
+            ]
+            portfolio_forecast_dict = build_portfolio_forecast(ticker_forecasts, pos_for_pf)
     except Exception as e:
         ticker_forecasts = {}
         forecast_summary = {}
@@ -242,10 +257,14 @@ async def analyze_portfolio(req: PortfolioRequest):
             "INSERT OR REPLACE INTO agent_insights VALUES (?,?,?)",
             (portfolio_id, json.dumps(insights), now),
         )
-        # Cache forecasts (with sentiment adjustments baked in)
+        # Cache forecasts (ticker + combined portfolio forecast)
+        forecast_cache = {
+            "ticker_forecasts": ticker_forecasts,
+            "portfolio_forecast": portfolio_forecast_dict,
+        }
         cur.execute(
             "INSERT OR REPLACE INTO forecasts VALUES (?,?,?)",
-            (portfolio_id, json.dumps(ticker_forecasts), now),
+            (portfolio_id, json.dumps(forecast_cache), now),
         )
         # Cache returns + covariance for optimizer
         cur.execute(
@@ -424,10 +443,19 @@ def get_forecast(portfolio_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="Portfolio not found. Run /analyze first.")
 
-    ticker_forecasts = json.loads(row[0])
+    cached = json.loads(row[0])
+    # Support both old format (plain dict of ticker_forecasts) and new format
+    if isinstance(cached, dict) and "ticker_forecasts" in cached:
+        ticker_forecasts = cached["ticker_forecasts"]
+        portfolio_forecast = cached.get("portfolio_forecast")
+    else:
+        ticker_forecasts = cached  # legacy: was stored as plain ticker dict
+        portfolio_forecast = None
+
     return ForecastResult(
         portfolio_id=portfolio_id,
         ticker_forecasts=ticker_forecasts,
+        portfolio_forecast=portfolio_forecast,
     )
 
 
@@ -461,7 +489,9 @@ def get_optimization(portfolio_id: str):
 
     tickers = json.loads(ret_row[0])
     cov_matrix = json.loads(ret_row[1])
-    ticker_forecasts = json.loads(fc_row[0])
+    cached_fc = json.loads(fc_row[0])
+    # Handle both new {ticker_forecasts, portfolio_forecast} and legacy plain dict format
+    ticker_forecasts = cached_fc.get("ticker_forecasts", cached_fc) if isinstance(cached_fc, dict) and "ticker_forecasts" in cached_fc else cached_fc
 
     if not cov_matrix:
         raise HTTPException(

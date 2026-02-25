@@ -177,6 +177,95 @@ async def run_portfolio_forecast(prices_df: pd.DataFrame, tickers: list[str]) ->
     return results
 
 
+def build_portfolio_forecast(
+    ticker_forecasts: dict,
+    positions: list[dict],          # [{ticker, quantity, current_price}]
+) -> dict | None:
+    """
+    Aggregate individual ticker 12-month Prophet forecasts into one combined
+    portfolio-level forecast, weighted by current market value (qty × current_price).
+
+    Dollar series: portfolio_value(date) = Σ quantity_i × yhat_i(date)
+
+    Returns a PortfolioForecast dict or None if not enough data.
+    """
+    if not positions:
+        return None
+
+    # Map ticker → position info
+    pos_map: dict[str, dict] = {}
+    for p in positions:
+        ticker = p["ticker"].upper()
+        tf = ticker_forecasts.get(ticker)
+        if not tf or not tf.get("future_series"):
+            continue
+        pos_map[ticker] = {"quantity": p["quantity"], "current_price": p["current_price"], "tf": tf}
+
+    if not pos_map:
+        return None
+
+    # Current portfolio value
+    total_value = sum(v["quantity"] * v["current_price"] for v in pos_map.values())
+    if total_value <= 0:
+        return None
+
+    weights = {
+        t: round((v["quantity"] * v["current_price"] / total_value) * 100, 2)
+        for t, v in pos_map.items()
+    }
+
+    # Build aligned date → {yhat, lower, upper} dollar sums
+    date_totals: dict[str, dict] = {}
+    for ticker, info in pos_map.items():
+        qty = info["quantity"]
+        for pt in info["tf"]["future_series"]:
+            d = pt["date"]
+            if d not in date_totals:
+                date_totals[d] = {"yhat": 0.0, "lower": 0.0, "upper": 0.0}
+            date_totals[d]["yhat"] += qty * pt["yhat"]
+            date_totals[d]["lower"] += qty * pt["yhat_lower"]
+            date_totals[d]["upper"] += qty * pt["yhat_upper"]
+
+    if not date_totals:
+        return None
+
+    future_series = [
+        {
+            "date": d,
+            "yhat": round(v["yhat"], 2),
+            "yhat_lower": round(v["lower"], 2),
+            "yhat_upper": round(v["upper"], 2),
+        }
+        for d, v in sorted(date_totals.items())
+    ]
+
+    def _at_horizon(days: int) -> dict:
+        """Pick the closest future_series point to `days` calendar days out."""
+        from datetime import timedelta
+        target = (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d")
+        for pt in future_series:
+            if pt["date"] >= target:
+                return pt
+        return future_series[-1]
+
+    forecast_1y_pt = _at_horizon(365)
+    forecast_1y_value = forecast_1y_pt["yhat"]
+    expected_return_pct = ((forecast_1y_value - total_value) / total_value) * 100
+
+    return {
+        "weights": weights,
+        "current_portfolio_value": round(total_value, 2),
+        "forecast_1y_value": round(forecast_1y_value, 2),
+        "expected_return_pct": round(expected_return_pct, 2),
+        "forecast_30d": _at_horizon(30),
+        "forecast_60d": _at_horizon(60),
+        "forecast_90d": _at_horizon(90),
+        "forecast_6m": _at_horizon(182),
+        "forecast_1y": forecast_1y_pt,
+        "future_series": future_series,
+    }
+
+
 def apply_sentiment_adjustment(ticker_forecasts: dict, sentiment: dict) -> dict:
     """
     Adjust the 30-day forecast for each ticker using its VADER sentiment score.
