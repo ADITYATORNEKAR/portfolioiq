@@ -51,26 +51,30 @@ async def fetch_portfolio_data(
     loop = asyncio.get_event_loop()
 
     def _download():
-        data = yf.download(
-            all_tickers,
-            period=period,
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
-        if isinstance(data.columns, pd.MultiIndex):
-            prices = data["Close"]
-        else:
-            prices = data[["Close"]] if "Close" in data.columns else data
-        return prices.dropna(how="all")
+        # Use individual Ticker.history() — more reliable on cloud IPs than
+        # batch yf.download(), which Yahoo Finance rate-limits aggressively.
+        dfs = {}
+        for ticker in all_tickers:
+            try:
+                hist = yf.Ticker(ticker).history(period=period, auto_adjust=True)
+                if len(hist) > 0:
+                    dfs[ticker.upper()] = hist["Close"].rename(ticker.upper())
+                else:
+                    logger.warning(f"Empty history for {ticker}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch {ticker}: {e}")
+        if not dfs:
+            return pd.DataFrame()
+        return pd.DataFrame(dfs).dropna(how="all")
 
     prices = await loop.run_in_executor(None, _download)
 
-    # Ensure columns are uppercase
-    prices.columns = [c.upper() for c in prices.columns]
+    if prices.empty:
+        logger.error("All tickers returned empty data from yfinance")
+        return {"prices": prices, "returns": pd.DataFrame(), "info": {}}
 
-    # Forward-fill minor gaps (weekends/holidays)
-    prices = prices.ffill().dropna()
+    # Forward-fill minor gaps, backfill leading NaNs, drop any remaining
+    prices = prices.ffill().bfill().dropna(how="all")
 
     # Log returns
     returns = prices.pct_change().dropna()

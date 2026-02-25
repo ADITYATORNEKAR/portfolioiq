@@ -98,16 +98,16 @@ class CausalGraph(BaseModel):
 # ── Backtesting ───────────────────────────────────────────────────────────────
 
 class BacktestMetrics(BaseModel):
-    annual_return: float
-    sharpe_ratio: float
-    max_drawdown: float
-    sortino_ratio: float
-    calmar_ratio: float
-    win_rate: float
-    total_return: float
-    benchmark_total_return: float
-    alpha: float
-    beta: float
+    annual_return: float = 0.0
+    sharpe_ratio: float = 0.0
+    max_drawdown: float = 0.0
+    sortino_ratio: float = 0.0
+    calmar_ratio: float = 0.0
+    win_rate: float = 0.0
+    total_return: float = 0.0
+    benchmark_total_return: float = 0.0
+    alpha: float = 0.0
+    beta: float = 1.0
 
 
 class BacktestDataPoint(BaseModel):
