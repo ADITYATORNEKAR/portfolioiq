@@ -1,6 +1,7 @@
 # PortfolioIQ
 
-> **AI-powered portfolio intelligence — discover what *causes* your portfolio to move, not just what correlates.**
+> **Smarter decisions driven by causation, not just correlation.**
+> Have your portfolio optimized and unlock 12-month forecasts, advanced simulations and prescriptive AI insights.
 
 A full-stack portfolio analytics platform combining causal inference, 12-month AI forecasting, portfolio optimization, and multi-agent AI insights. Built entirely on a **100% free** stack — no credit card, no paid tiers.
 
@@ -98,6 +99,10 @@ docker-compose up --build
 
 ## Architecture
 
+![PortfolioIQ Architecture](Architecture.png)
+
+### System Overview
+
 ```
 Browser → Next.js (Vercel) → FastAPI (Render)
                                     │
@@ -108,7 +113,7 @@ Browser → Next.js (Vercel) → FastAPI (Render)
          yfinance (free)       PC Algorithm (causal-learn)
          Finnhub REST          Double ML (EconML)
          FRED API              FB Prophet (forecasting)
-                               scipy SLSQP (optimizer)
+         Yahoo Finance RSS     scipy SLSQP (optimizer)
                                LangGraph agents (Groq)
                                VADER sentiment
                                SQLite cache
@@ -120,10 +125,75 @@ Browser → Next.js (Vercel) → FastAPI (Render)
 researcher → [Finnhub news + FRED macro tools] → analyst → risk → synthesizer
 ```
 
-1. **Researcher** — calls Finnhub `/company-news` and FRED `/series/observations` for live context
-2. **Portfolio Analyst** — compares cost basis × 12m Prophet forecast × Max Sharpe weights
-3. **Risk Agent** — prescriptive rebalancing from weight drift vs optimal allocation
-4. **Synthesizer** — emits BUY / HOLD / TRIM / REBALANCE signals per position
+| Agent | Role |
+|-------|------|
+| **Researcher** | Calls Finnhub `/company-news` and FRED `/series/observations` for live market context |
+| **Portfolio Analyst** | Compares cost basis × 12m Prophet forecast × Max Sharpe optimal weights |
+| **Risk Agent** | Prescriptive rebalancing from weight drift vs optimal allocation |
+| **Synthesizer** | Emits BUY / HOLD / TRIM / REBALANCE signals per position with narrative |
+
+---
+
+## Sample AI Insights Output
+
+### Signals & Recommendations
+
+| Signal | Ticker | 1Y Forecast | vs Optimal Weight | Notes |
+|--------|--------|------------|-------------------|-------|
+| 🟢 **BUY** | MU | +80.7% → $763.69 | Underweight −12.4% | Positive sentiment score 0.39 |
+| 🟢 **BUY** | TRGP | +18.0% → $266.78 | Underweight −14.4% | Positive news flow score 0.40 |
+| 🟢 **HOLD/ADD** | AVGO | +39.4% → $454.41 | — | Cost basis $346.15 — strong upside |
+| 🟢 **HOLD/ADD** | FANG | +13.8% → $191.66 | Near optimal | Cost basis $153.90 |
+| 🟡 **HOLD** | ET | +7.6% → $20.05 | Near optimal | Cost $16.63 |
+| 🟡 **HOLD** | LNG | +1.9% → $224.57 | Near optimal | Cost $200.00 |
+| 🟡 **HOLD** | PSN | +9.5% → $70.12 | Near optimal | Cost $85.83; sentiment 0.42 |
+| 🔴 **TRIM** | META | −10.5% | Overweight +6.6% | Negative forecast + overweight |
+| 🔴 **TRIM** | NFLX | −26.8% | Overweight +10.5% | Strong downside — reduce exposure |
+| 🔴 **REBALANCE** | AMZN | −3.0% | Overweight +10.1% | Trim to target despite forecast |
+| 🔴 **REBALANCE** | MSFT | −0.2% | Overweight +30.4% | Largest weight drift — trim to target |
+| 🔴 **MONITOR** | TRMB | −6.7% | — | Reduce if thesis doesn't hold; sentiment 0.38 |
+
+### Full Analysis
+
+**Rebalancing Summary**
+
+| Action | Tickers | Rationale |
+|--------|---------|-----------|
+| ➕ Increase | MU, TRGP, FANG, ET, AVGO | Underweight with strong upside forecasts and positive sentiment |
+| ➖ Reduce | META, NFLX, MSFT, AMZN, TRMB, PSN | Overweight and/or weak / negative 1-year forecast |
+| ⭐ Best risk/reward | AVGO | Current $332.31 → 1y target $454.41 (+39.4%) |
+| 🌐 Key macro catalyst | PSN border tech contract wins may be undervalued; broader risk from AVGO/AMZN weight in tech |
+
+**Risk Assessment**
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| Overall Risk | **Medium** | Moderate risk-adjusted return profile |
+| Sharpe Ratio | 0.85 | Acceptable return per unit of risk |
+| Max Drawdown | −18.01% | Significant potential decline |
+| Beta | 1.15 | Slightly more volatile than market |
+
+**Suggested Trims** *(overweight positions)*
+
+| Ticker | Current Weight | Target Weight | Trim By | Reason |
+|--------|---------------|--------------|---------|--------|
+| MSFT | ~30.4% excess | 0% optimal | −30.4% | Large overweight; −0.2% forecast |
+| NFLX | ~10.5% excess | 0% optimal | −10.5% | −26.8% forecast |
+| AMZN | ~10.1% excess | 0% optimal | −10.1% | −3.0% forecast; positive sentiment not sufficient |
+| META | ~6.6% excess | 0% optimal | −6.6% | −10.5% forecast; neutral sentiment |
+| AVGO | ~8.5% excess | 16.7% optimal | −8.5% | Strong forecast but reduce concentration risk |
+
+**Suggested Adds** *(underweight positions with positive forecasts)*
+
+| Ticker | Current Weight | Target Weight | Add By | Reason |
+|--------|---------------|--------------|--------|--------|
+| MU | ~4.3% | 16.7% | +12.4% | +80.7% forecast; sentiment 0.39 |
+| TRGP | ~2.3% | 16.7% | +14.4% | +18.0% forecast; sentiment 0.40 |
+| FANG | ~1.7% | 16.7% | +15.0% | +13.8% forecast; positive sentiment |
+| ET | ~0.2% | 16.7% | +16.5% | +7.6% forecast; positive sentiment |
+| PSN | ~4.1% | 16.7% | +12.6% | +9.5% forecast; sentiment 0.42 |
+
+> **Hedge suggestion:** Allocate ~5% to a volatility index fund (VIX-linked) or inverse market ETF (e.g. SH) to buffer against broad market drawdown given Beta > 1.
 
 ---
 
@@ -173,10 +243,12 @@ PYTHONPATH=. pytest tests/test_api.py -v -k "not analyze"
 
 ---
 
-## Roadmap
+## Future Roadmap
 
 | Feature | Description |
 |---------|-------------|
+| **Sector Heatmap & Top Picks** | Heatmap and visual ranking of top 5 stocks per sector in the Simulation tab to guide decision-making and sector allocation |
+| **Growth Signal Factors** | Explore additional forward-looking signals (earnings revisions, insider activity, options flow, factor exposures) to enrich portfolio forecasts |
 | **10-K / 10-Q Integration** | Parse last 4 quarters of SEC filings to enrich forecast context and AI insights with forward-looking guidance |
 | **Strategy Simulations** | Backtest user-defined buying strategies (DCA, momentum, value averaging) across historical data |
 | **Uber Orbit Forecasting** | Add Uber Orbit and other forecasting-at-scale models alongside FB Prophet for ensemble predictions |
