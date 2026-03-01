@@ -8,20 +8,20 @@ Building intelligent systems at the intersection of causal inference, high-frequ
 
 ## 🚀 Featured Project: HFT Causal Platform
 
-### High-Frequency Trading with Causal Discovery & Multi-Agent Intelligence
+### PortfolioIQ — Portfolio Optimization through Causal Intelligence
 
-A sophisticated analytics platform that isolates true price impact signals from retail sentiment using advanced causal inference and autonomous agents.
+An AI-powered portfolio analytics platform combining causal inference, 12-month forecasting, portfolio optimization, and multi-agent AI insights to give investors prescriptive BUY/HOLD/TRIM signals.
 
 **[→ Explore the Repository](https://github.com/ADITYATORNEKAR/hft-causal-platform)**
 
 ### 🎯 Key Capabilities
 
 ```
-📊 Real-Time Data Ingestion    → Finnhub WebSocket + Alpha Vantage + Reddit Streams
-🧠 Causal Discovery Engine     → PC Algorithm + Double Machine Learning  
-🤖 Multi-Agent Orchestration   → LangGraph-based decision workflows
-📈 Advanced Backtesting        → Vectorized + Event-based simulation with real friction
-🛡️  Risk Management            → Human-in-the-loop validation checkpoints
+📊 Causal Discovery Engine     → PC Algorithm + Double Machine Learning (EconML)
+🔮 12-Month Forecasting        → FB Prophet with VADER sentiment adjustment
+🤖 Multi-Agent Orchestration   → LangGraph 4-node pipeline (Groq Llama-3.3-70B)
+📈 Portfolio Optimization      → Max Sharpe / Min Vol (scipy SLSQP)
+📉 Backtesting & Risk Metrics  → Sharpe, Sortino, Max Drawdown, Alpha, Beta
 ```
 
 ### 💡 The Problem This Solves
@@ -119,7 +119,7 @@ My approach: *Marry cutting-edge research with battle-tested engineering practic
 
 | Project | Description |
 |---------|------------|
-| **[hft-causal-platform](https://github.com/ADITYATORNEKAR/hft-causal-platform)** | 🏆 Primary: Causal inference + multi-agent HFT analytics |
+| **[PortfolioIQ](https://github.com/ADITYATORNEKAR/hft-causal-platform)** | 🏆 Primary: AI portfolio intelligence — causal inference, forecasting, multi-agent insights |
 | **[quantitative-research](link-coming-soon)** | Quantitative strategies & backtesting frameworks |
 | **[ml-infrastructure](link-coming-soon)** | Production ML systems & deployment patterns |
 

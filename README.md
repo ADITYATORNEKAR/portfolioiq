@@ -56,7 +56,7 @@ Upload a CSV or enter your holdings and get:
 
 ```bash
 git clone https://github.com/ADITYATORNEKAR/hft-causal-platform
-cd hft-causal-platform
+cd hft-causal-platform  # rename to portfolioiq after GitHub repo rename
 
 pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env   # add free API keys (optional)

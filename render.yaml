@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hft-causal-platform
+    name: portfolioiq
     runtime: docker
     envVars:
       - key: FINNHUB_API_KEY

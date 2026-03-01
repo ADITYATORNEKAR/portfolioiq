@@ -2,7 +2,7 @@
 # Free tier: shared-cpu-1x (256MB RAM) — always-on, no spin-down
 # Setup: fly launch (first time) then fly deploy
 
-app = "hft-causal-platform"
+app = "portfolioiq"
 primary_region = "ord"  # Chicago — change to nearest: lax, ewr, sea, iad, etc.
 
 [build]
